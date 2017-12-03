@@ -8,19 +8,19 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
 import tf
-import cv2
 import yaml
 import math
-from enum import Enum
+#from enum import Enum
 
 STATE_COUNT_THRESHOLD = 1
 
-class TrafficLightColor(Enum):
-    RED = 0
-    YELLOW = 1
-    GREEN = 2
-    NAN = 3
-    UNKNOWN = 4
+#class TrafficLightColor(Enum):
+#    RED = 0
+#    YELLOW = 1
+#    GREEN = 2
+#    NAN = 3
+#    UNKNOWN = 4
+COLOR_STR = ['RED', 'YELLOW', 'GREEN', 'NAN', 'UNKNOWN']
 
 class TLDetector(object):
     def __init__(self, use_tl_groundtruth=False):
@@ -258,8 +258,6 @@ class TLDetector(object):
             else:
                 rospy.logdebug("Found closest stopline waypoints at {}".format(closed_stop_line_idx))
 
-            COLOR_STR = ['RED', 'YELLOW', 'GREEN', 'NAN', 'UNKNOWN']
-
             # Now we have found all the stop lines' way points and their relative way point distance from the car
             #
             # 1.2. Find the closest stop line ahead of the car
@@ -314,8 +312,8 @@ class TLDetector(object):
 
         if not self.use_tl_groundtruth:
             tl_state = self.get_light_state()
-            tl_color = TrafficLightColor(tl_state).name
-            gt_color = TrafficLightColor(tl_ground_truth_state).name
+            tl_color = COLOR_STR[tl_state]
+            gt_color = COLOR_STR[tl_ground_truth_state]
             if self.debug:
                 rospy.loginfo("Traffic light detected %s, gt %s", tl_color,
                               gt_color)
