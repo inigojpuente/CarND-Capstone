@@ -29,7 +29,7 @@ class Controller(object):
         
         #self.low_pass_brake  = LowPassFilter(0.25, 1.0/self.updata_rate)
 
-        self.throttle_control = PID(12.5, 0.01, 1.0, -MAX_THROTTLE, MAX_THROTTLE)
+        self.throttle_control = PID(10.0, 0.01, 0.5, -MAX_THROTTLE, MAX_THROTTLE)
 
         self.last_run_ts = None
 
@@ -72,16 +72,15 @@ class Controller(object):
         throttle = 0.0
         brake    = 0.0
 
-        if longitudinal_control < -abs(self.brake_deadband):
-            brake_control = abs(longitudinal_control) - abs(self.brake_deadband)
-            # direct brake torque = brake_force * wheel radius
-            # brake_force = mass*deceleration
-            # deceleration = v_err/dt
-            brake_coeff = (self.vehicle_mass + self.fuel_capacity*GAS_DENSITY)*self.wheel_radius*abs(self.decel_limit)
-            brake = brake_coeff*abs(brake_control)
-            # if abs(longitudinal_control) < self.brake_deadband:
-                # brake = 0.0
-                
+        if longitudinal_control < 0:
+            brake_control = abs(longitudinal_control)*abs(self.decel_limit) - abs(self.brake_deadband)
+            if brake_control > 0.0:
+                # direct brake torque = brake_force * wheel radius
+                # brake_force = mass*deceleration
+                # deceleration = v_err/dt
+                brake_coeff = (self.vehicle_mass + self.fuel_capacity*GAS_DENSITY)*self.wheel_radius
+                brake = brake_coeff*abs(brake_control)
+
         else:
             throttle = longitudinal_control
 
