@@ -36,18 +36,19 @@ class DBWNode(object):
         rospy.init_node('dbw_node')
 
 
-        controller_params = {
+        self.controller_params = {
             "vehicle_mass": rospy.get_param('~vehicle_mass', 1736.35),
             "fuel_capacity":  rospy.get_param('~fuel_capacity', 13.5),
             "brake_deadband": rospy.get_param('~brake_deadband', .1),
-            "decel_limit": rospy.get_param('~decel_limit', -5),
+            "decel_limit": rospy.get_param('~decel_limit', -5.0),
             "accel_limit": rospy.get_param('~accel_limit', 1.),
             "wheel_radius": rospy.get_param('~wheel_radius', 0.2413),
             "wheel_base": rospy.get_param('~wheel_base', 2.8498),
             "steer_ratio": rospy.get_param('~steer_ratio', 14.8),
             "max_lat_accel": rospy.get_param('~max_lat_accel', 3.),
             "max_steer_angle": rospy.get_param('~max_steer_angle', 8.),
-            "min_speed": 1,
+            "min_speed": 2.,
+            "updata_rate":  50
         }
 
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
@@ -57,7 +58,7 @@ class DBWNode(object):
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd',
                                          BrakeCmd, queue_size=1)
 
-        self.controller = Controller(**controller_params)
+        self.controller = Controller(**self.controller_params)
 
         rospy.Subscriber('/dbw_enabled', Bool, self.dbw_enabled_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb, queue_size=1)
@@ -70,15 +71,19 @@ class DBWNode(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(30) # 50Hz
+        rate = rospy.Rate(self.controller_params["updata_rate"]) # 50Hz
         while not rospy.is_shutdown():
 
             if self.twist_cmd is None or self.current_velocity is None:
                 continue
 
-            throttle, brake, steering = self.controller.control(self.twist_cmd.twist.linear,
-                                                                self.twist_cmd.twist.angular,
-                                                                self.current_velocity.twist.linear,
+            vx_act = self.current_velocity.twist.linear.x # actual velocity
+            vx_cmd = self.twist_cmd.twist.linear.x  #  command velocity
+            wz_cmd = self.twist_cmd.twist.angular.z #  command angular velocity
+
+            throttle, brake, steering = self.controller.control(vx_cmd,
+                                                                vx_act,
+                                                                wz_cmd,
                                                                 self.dbw_enabled)
 
             rospy.logdebug("Throttle: {}".format(throttle))

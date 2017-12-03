@@ -1,4 +1,5 @@
 
+import rospy
 MIN_NUM = float('-inf')
 MAX_NUM = float('inf')
 
@@ -12,6 +13,9 @@ class PID(object):
         self.max = mx
 
         self.int_val = self.last_int_val = self.last_error = 0.
+
+        self.debug_max = MIN_NUM
+        self.debug_min = MAX_NUM
 
     def reset(self):
         self.int_val = 0.0
@@ -34,4 +38,11 @@ class PID(object):
             self.int_val = integral
         self.last_error = error
 
+        if val < self.debug_min:
+            self.debug_min = val
+
+        if val > self.debug_max:
+            self.debug_max = val
+
+        # rospy.loginfo("pid output: %s\tmax: %s\tmin: %s", val, self.debug_max, self.debug_min)
         return val

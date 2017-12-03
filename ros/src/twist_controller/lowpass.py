@@ -1,5 +1,7 @@
 
 class LowPassFilter(object):
+    # tau is the time constant of the first order filter
+    # ts is the sampling time
     def __init__(self, tau, ts):
         self.a = 1. / (tau / ts + 1.)
         self.b = tau / ts / (tau / ts + 1.);
