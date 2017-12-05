@@ -27,7 +27,7 @@ class Controller(object):
         
         #self.low_pass_brake  = LowPassFilter(0.25, 1.0/self.updata_rate)
 
-        self.longitudinal_control = PID(10.0, 0.01, 0.5, self.decel_limit, self.accel_limit)
+        self.longitudinal_control = PID(12.0, 0.01, 0.5, self.decel_limit, self.accel_limit)
 
         self.last_run_ts = None
 
