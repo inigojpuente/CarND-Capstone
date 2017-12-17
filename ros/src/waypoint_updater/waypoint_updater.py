@@ -6,7 +6,7 @@ from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
 
-import math
+import math, copy
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -44,12 +44,12 @@ class WaypointUpdater(object):
         # TODO: Add other member variables you need below
 
         self.waypoints = None
+        self.waypoints_copy = None
         self.current_pos = None
         self.current_wp = None
         self.final_waypoints = None
         self.updated_velocity_flag = False
         self.traffic_light_wp = -1
-
         rospy.spin()
 
     def pose_cb(self, msg):
@@ -61,7 +61,11 @@ class WaypointUpdater(object):
         if self.waypoints:
             return
 
-        self.waypoints = waypoints.waypoints
+        self.waypoints      = waypoints.waypoints
+
+        # make a copy so we can use it later to restore velocity
+        self.waypoints_copy = copy.deepcopy(waypoints.waypoints)
+
         rospy.loginfo("WaypointUpdater: received waypoints")
         self.publish_waypoints()
 
@@ -123,7 +127,7 @@ class WaypointUpdater(object):
         return dist
 
     def publish_waypoints(self):
-        if self.waypoints is None or self.current_pos is None:
+        if self.waypoints is None or self.current_pos is None or self.waypoints_copy is None:
             return
 
         car_x = self.current_pos.position.x
@@ -151,26 +155,23 @@ class WaypointUpdater(object):
 
         final_waypoints = list(islice(cycle(self.waypoints), nearest_wp_idx, nearest_wp_idx + LOOKAHEAD_WPS))
 
-        #rospy.loginfo("current_wp %s tl_wp %s", self.current_wp, self.traffic_light_wp)
-
         speed_up = True
         if self.traffic_light_wp != -1:  # red traffic light
             if (self.traffic_light_wp - self.current_wp) < LOOKAHEAD_WPS and (self.traffic_light_wp - self.current_wp) > 0:
-                self.decelerate(final_waypoints, self.traffic_light_wp - self.current_wp - 7)
+                final_waypoints = self.decelerate(final_waypoints, self.traffic_light_wp - self.current_wp - 7)
                 speed_up = False
 
-        rospy.logdebug("WPU: speedup : {}".format(speed_up))
+        rospy.logdebug("WPU: speed_up : {}".format(speed_up))
 
         if speed_up:
-            velocity = self.kmph2mps(rospy.get_param('~velocity'))
             if final_waypoints is not None:
-                for wp in final_waypoints:
-                    wp.twist.twist.linear.x = velocity
+                for i in range(0, LOOKAHEAD_WPS):
+                    final_waypoints[i].twist.twist.linear.x = self.waypoints_copy[i + nearest_wp_idx].twist.twist.linear.x
 
         lane = Lane()
         lane.waypoints = final_waypoints
-        #for i in range(0, 10):
-        #rospy.loginfo("publish_waypoints current velocity %s", self.final_waypoints[0].twist.twist.linear.x)
+        # for i in range(0, 5):
+        #     rospy.loginfo("publish_waypoints 2 velocity %s", final_waypoints[i].twist.twist.linear.x)
 
         lane.header.frame_id = '/world'
         lane.header.stamp = rospy.Time(0)
